@@ -1,4 +1,21 @@
-// DOM Elements
+// ============================================
+// STUDENT COMMUNITY - FRONTEND
+// ============================================
+
+// CONFIGURATION
+const CONFIG = {
+  BACKEND_URL: "https://script.google.com/macros/s/AKfycbzSPAlSGpoAF8TgFCrjZzSO3THpnr7gZs0omcekXgQdfzbs-FiVxX8EXkDwFZa43KtRIg/exec", // Deploy ke baad jo URL aya
+  APP_NAME: "Student Community",
+  VERSION: "1.0"
+};
+
+// STATE MANAGEMENT
+let currentUser = null;
+let userCounter = localStorage.getItem('userCounter') || 1;
+
+// ============================================
+// DOM ELEMENTS
+// ============================================
 const loginToggle = document.getElementById('loginToggle');
 const registerToggle = document.getElementById('registerToggle');
 const loginForm = document.getElementById('loginForm');
@@ -14,580 +31,506 @@ const loginFormElement = document.getElementById('loginFormElement');
 const registerFormElement = document.getElementById('registerFormElement');
 const forgotFormElement = document.getElementById('forgotFormElement');
 
-// Image Upload Elements
+// Image Upload
 const uploadArea = document.getElementById('uploadArea');
 const profilePicInput = document.getElementById('profilePic');
 const previewContainer = document.getElementById('previewContainer');
 
-// Password Toggle
-const togglePasswordButtons = document.querySelectorAll('.toggle-password');
-
-// User counter for auto username generation
-let userCounter = 1;
-
-// ✅ BACKEND CONFIGURATION - APNI WEB APP URL YAHAN DALEN
-const BACKEND_URL = "https://script.google.com/macros/s/AKfycbzpD_1HGR25eO-mnV3blH6ic0sTXaxexlkrnzlX6yuJNR9wIvPXS3kKF5Bgi9c9e7xJgA/exec";
-
-// ✅ BACKEND API FUNCTIONS
-async function callBackend(action, data) {
-    try {
-        const response = await fetch(BACKEND_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                action: action,
-                ...data
-            })
-        });
-        
-        const result = await response.json();
-        console.log(`Backend response for ${action}:`, result);
-        return result;
-    } catch (error) {
-        console.error('Backend connection error:', error);
-        return {
-            success: false,
-            message: 'Network error. Please check your connection and try again.'
-        };
-    }
-}
-
-// ✅ Toggle between Login and Register
-loginToggle.addEventListener('click', () => {
-    loginToggle.classList.add('active');
-    registerToggle.classList.remove('active');
-    loginForm.classList.add('active');
-    registerForm.classList.remove('active');
-    forgotForm.classList.remove('active');
-});
-
-registerToggle.addEventListener('click', () => {
-    registerToggle.classList.add('active');
-    loginToggle.classList.remove('active');
-    registerForm.classList.add('active');
-    loginForm.classList.remove('active');
-    forgotForm.classList.remove('active');
-});
-
-switchToRegister.addEventListener('click', (e) => {
-    e.preventDefault();
-    registerToggle.click();
-});
-
-switchToLogin.addEventListener('click', (e) => {
-    e.preventDefault();
-    loginToggle.click();
-});
-
-// ✅ Forgot Password Link
-forgotPasswordLink.addEventListener('click', (e) => {
-    e.preventDefault();
-    loginForm.classList.remove('active');
-    registerForm.classList.remove('active');
-    forgotForm.classList.add('active');
-    loginToggle.classList.remove('active');
-    registerToggle.classList.remove('active');
-});
-
-cancelForgot.addEventListener('click', () => {
-    loginToggle.click();
-});
-
-// ✅ Toggle Password Visibility
-togglePasswordButtons.forEach(button => {
-    button.addEventListener('click', function() {
-        const input = this.previousElementSibling;
-        const icon = this.querySelector('i');
-        
-        if (input.type === 'password') {
-            input.type = 'text';
-            icon.classList.remove('fa-eye');
-            icon.classList.add('fa-eye-slash');
-        } else {
-            input.type = 'password';
-            icon.classList.remove('fa-eye-slash');
-            icon.classList.add('fa-eye');
-        }
-    });
-});
-
-// ✅ Image Upload Functionality
-uploadArea.addEventListener('click', () => {
-    profilePicInput.click();
-});
-
-profilePicInput.addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (file) {
-        // Validate file size (2MB max)
-        if (file.size > 2 * 1024 * 1024) {
-            alert('❌ File size must be less than 2MB');
-            this.value = '';
-            return;
-        }
-        
-        // Validate file type
-        if (!file.type.match('image/jpeg') && !file.type.match('image/png')) {
-            alert('❌ Only JPG and PNG files are allowed');
-            this.value = '';
-            return;
-        }
-        
-        // Create preview
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            previewContainer.innerHTML = `
-                <img src="${e.target.result}" alt="Profile Preview">
-                <button type="button" class="remove-image">
-                    <i class="fas fa-trash"></i> Remove Image
-                </button>
-            `;
-            previewContainer.style.display = 'block';
-            
-            // Add remove functionality
-            const removeBtn = previewContainer.querySelector('.remove-image');
-            removeBtn.addEventListener('click', () => {
-                profilePicInput.value = '';
-                previewContainer.style.display = 'none';
-                previewContainer.innerHTML = '';
-            });
-        };
-        reader.readAsDataURL(file);
-    }
-});
-
-// ✅ Drag and Drop for Image Upload
-uploadArea.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    uploadArea.style.borderColor = '#3b82f6';
-    uploadArea.style.backgroundColor = '#f0f9ff';
-});
-
-uploadArea.addEventListener('dragleave', () => {
-    uploadArea.style.borderColor = '#cbd5e1';
-    uploadArea.style.backgroundColor = 'white';
-});
-
-uploadArea.addEventListener('drop', (e) => {
-    e.preventDefault();
-    uploadArea.style.borderColor = '#cbd5e1';
-    uploadArea.style.backgroundColor = 'white';
-    
-    if (e.dataTransfer.files.length) {
-        profilePicInput.files = e.dataTransfer.files;
-        const event = new Event('change');
-        profilePicInput.dispatchEvent(event);
-    }
-});
-
-// ✅ Password Strength Indicator
+// Password Strength
 const passwordInput = document.getElementById('registerPassword');
 const strengthBar = document.querySelector('.strength-bar');
 const strengthText = document.querySelector('.strength-text');
 
-passwordInput.addEventListener('input', function() {
-    const password = this.value;
-    let strength = 0;
-    
-    // Length check
-    if (password.length >= 8) strength++;
-    if (password.length >= 12) strength++;
-    
-    // Complexity checks
-    if (/[A-Z]/.test(password)) strength++;
-    if (/[0-9]/.test(password)) strength++;
-    if (/[^A-Za-z0-9]/.test(password)) strength++;
-    
-    // Update UI
-    const width = strength * 20;
-    strengthBar.style.width = width + '%';
-    
-    if (strength <= 2) {
-        strengthBar.style.backgroundColor = '#ef4444';
-        strengthText.textContent = 'Weak Password';
-        strengthText.style.color = '#ef4444';
-    } else if (strength <= 4) {
-        strengthBar.style.backgroundColor = '#f59e0b';
-        strengthText.textContent = 'Medium Password';
-        strengthText.style.color = '#f59e0b';
-    } else {
-        strengthBar.style.backgroundColor = '#10b981';
-        strengthText.textContent = 'Strong Password';
-        strengthText.style.color = '#10b981';
-    }
-});
+// ============================================
+// BACKEND API FUNCTIONS
+// ============================================
 
-// ✅ Phone Number Formatting
-const phoneInputs = document.querySelectorAll('input[type="tel"]');
-
-phoneInputs.forEach(input => {
-    input.addEventListener('input', function(e) {
-        let value = this.value.replace(/\D/g, '');
-        
-        if (value.length > 0) {
-            if (value.length <= 4) {
-                value = value;
-            } else if (value.length <= 11) {
-                value = value.substring(0, 4) + '-' + value.substring(4);
-            } else {
-                value = value.substring(0, 11);
-            }
-        }
-        
-        this.value = value;
+async function callBackend(action, data = {}) {
+  try {
+    showLoader();
+    
+    const response = await fetch(CONFIG.BACKEND_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        action: action,
+        ...data
+      })
     });
-});
-
-// ✅ Remember Me functionality
-const rememberMe = document.getElementById('rememberMe');
-const loginPhoneInput = document.getElementById('loginPhone');
-
-// Load saved phone number if Remember Me was checked
-window.addEventListener('load', () => {
-    const savedPhone = localStorage.getItem('rememberedPhone');
-    if (savedPhone) {
-        loginPhoneInput.value = savedPhone;
-        rememberMe.checked = true;
-    }
-});
-
-// Save phone number when Remember Me is checked
-rememberMe.addEventListener('change', function() {
-    if (!this.checked) {
-        localStorage.removeItem('rememberedPhone');
-    }
-});
-
-// ✅ LOGIN FORM SUBMISSION WITH BACKEND
-loginFormElement.addEventListener('submit', async function(e) {
-    e.preventDefault();
     
-    const phone = document.getElementById('loginPhone').value;
-    const password = document.getElementById('loginPassword').value;
-    
-    // Validate phone format
-    if (!/^03\d{2}-\d{7}$/.test(phone)) {
-        alert('❌ Please enter a valid phone number in format: 03XX-XXXXXXX');
-        return;
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
     }
     
-    // Validate password length
-    if (password.length < 6 || password.length > 20) {
-        alert('❌ Password must be between 6-20 characters');
-        return;
-    }
+    const result = await response.json();
+    hideLoader();
     
-    // Show loading state
-    const submitBtn = this.querySelector('.submit-btn');
-    const originalText = submitBtn.innerHTML;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
-    submitBtn.disabled = true;
+    console.log(`🔹 ${action} Response:`, result);
+    return result;
     
-    try {
-        // Call backend API
-        const result = await callBackend('login', { 
-            phone: phone, 
-            password: password 
-        });
-        
-        // Reset button
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
-        
-        if (result.success) {
-            // Save to Remember Me
-            if (rememberMe.checked) {
-                localStorage.setItem('rememberedPhone', phone);
-            } else {
-                localStorage.removeItem('rememberedPhone');
-            }
-            
-            // Save user data to localStorage for dashboard
-            localStorage.setItem('currentUser', JSON.stringify(result.userData));
-            
-            // Show success message
-            alert(`✅ ${result.message}\nWelcome back, ${result.userData.firstName}!`);
-            
-            // Redirect to dashboard (you'll create this file later)
-            setTimeout(() => {
-                window.location.href = 'dashboard.html';
-            }, 1000);
-            
-        } else {
-            alert(`❌ ${result.message}`);
-        }
-    } catch (error) {
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
-        alert('❌ Login failed. Please try again.');
-        console.error('Login error:', error);
-    }
-});
-
-// ✅ REGISTRATION FORM SUBMISSION WITH BACKEND
-registerFormElement.addEventListener('submit', async function(e) {
-    e.preventDefault();
+  } catch (error) {
+    hideLoader();
+    console.error(`❌ ${action} Error:`, error);
     
-    // Get form values
-    const firstName = document.getElementById('firstName').value.trim();
-    const lastName = document.getElementById('lastName').value.trim();
-    const education = document.getElementById('education').value;
-    const skills = document.getElementById('skills').value.trim();
-    const phone = document.getElementById('registerPhone').value;
-    const password = document.getElementById('registerPassword').value;
-    const confirmPassword = document.getElementById('confirmPassword').value;
-    const termsAccepted = document.getElementById('terms').checked;
-    
-    // Validate first name
-    if (!/^[A-Za-z ]{2,20}$/.test(firstName)) {
-        alert('❌ First name must be 2-20 letters only');
-        return;
-    }
-    
-    // Validate last name
-    if (!/^[A-Za-z ]{2,20}$/.test(lastName)) {
-        alert('❌ Last name must be 2-20 letters only');
-        return;
-    }
-    
-    // Validate education
-    if (!education) {
-        alert('❌ Please select your education level');
-        return;
-    }
-    
-    // Validate phone
-    if (!/^03\d{2}-\d{7}$/.test(phone)) {
-        alert('❌ Please enter a valid phone number in format: 03XX-XXXXXXX');
-        return;
-    }
-    
-    // Validate password
-    if (password.length < 6 || password.length > 20) {
-        alert('❌ Password must be between 6-20 characters');
-        return;
-    }
-    
-    // Check password match
-    if (password !== confirmPassword) {
-        alert('❌ Passwords do not match!');
-        return;
-    }
-    
-    // Check terms
-    if (!termsAccepted) {
-        alert('❌ You must agree to the terms and conditions');
-        return;
-    }
-    
-    // Show loading state
-    const submitBtn = this.querySelector('.submit-btn');
-    const originalText = submitBtn.innerHTML;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Account...';
-    submitBtn.disabled = true;
-    
-    try {
-        // 1. First check if phone already exists
-        const checkResult = await callBackend('checkPhone', { phone });
-        
-        if (checkResult.exists) {
-            alert('❌ This phone number is already registered. Please use a different number or try login.');
-            submitBtn.innerHTML = originalText;
-            submitBtn.disabled = false;
-            return;
-        }
-        
-        // 2. Upload profile picture if exists
-        let profilePicUrl = null;
-        if (profilePicInput.files[0]) {
-            const reader = new FileReader();
-            const base64Image = await new Promise((resolve) => {
-                reader.onload = function(e) {
-                    resolve(e.target.result);
-                };
-                reader.readAsDataURL(profilePicInput.files[0]);
-            });
-            
-            // Upload to Drive
-            const uploadResult = await callBackend('uploadProfilePic', {
-                imageData: base64Image,
-                username: `temp_${Date.now()}`
-            });
-            
-            if (uploadResult.success) {
-                profilePicUrl = uploadResult.directUrl;
-            }
-        }
-        
-        // 3. Prepare user data
-        const userData = {
-            firstName: firstName,
-            lastName: lastName,
-            education: education,
-            skills: skills || 'Not specified',
-            phone: phone,
-            password: password, // Note: In production, hash this!
-            profilePic: profilePicUrl
-        };
-        
-        // 4. Send to Google Sheets
-        const result = await callBackend('register', { userData });
-        
-        if (result.success) {
-            alert(`✅ ${result.message}\nYour username: ${result.username}\nPlease note it down!`);
-            
-            // Reset form
-            registerFormElement.reset();
-            previewContainer.style.display = 'none';
-            previewContainer.innerHTML = '';
-            strengthBar.style.width = '0%';
-            strengthBar.style.backgroundColor = '#ef4444';
-            strengthText.textContent = 'Password strength';
-            strengthText.style.color = '#64748b';
-            
-            // Switch to login
-            setTimeout(() => {
-                loginToggle.click();
-                // Auto-fill phone in login form
-                document.getElementById('loginPhone').value = phone;
-            }, 500);
-            
-        } else {
-            alert(`❌ ${result.message}`);
-        }
-    } catch (error) {
-        alert('❌ Registration failed. Please try again.');
-        console.error('Registration error:', error);
-    } finally {
-        // Reset button
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
-    }
-});
-
-// ✅ FORGOT PASSWORD FORM SUBMISSION WITH BACKEND
-forgotFormElement.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    const phone = document.getElementById('forgotPhone').value;
-    const newPassword = document.getElementById('newPassword').value;
-    const confirmNewPassword = document.getElementById('confirmNewPassword').value;
-    
-    // Validate phone
-    if (!/^03\d{2}-\d{7}$/.test(phone)) {
-        alert('❌ Please enter a valid phone number in format: 03XX-XXXXXXX');
-        return;
-    }
-    
-    // Validate password
-    if (newPassword.length < 6 || newPassword.length > 20) {
-        alert('❌ Password must be between 6-20 characters');
-        return;
-    }
-    
-    // Check password match
-    if (newPassword !== confirmNewPassword) {
-        alert('❌ Passwords do not match!');
-        return;
-    }
-    
-    // Show loading
-    const submitBtn = this.querySelector('.submit-btn');
-    const originalText = submitBtn.innerHTML;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Resetting...';
-    submitBtn.disabled = true;
-    
-    try {
-        // Check if phone exists
-        const checkResult = await callBackend('checkPhone', { phone });
-        
-        if (!checkResult.exists) {
-            alert('❌ Phone number not found in our system');
-            submitBtn.innerHTML = originalText;
-            submitBtn.disabled = false;
-            return;
-        }
-        
-        // Reset password
-        const resetResult = await callBackend('resetPassword', { 
-            phone, 
-            newPassword 
-        });
-        
-        if (resetResult.success) {
-            alert('✅ Password reset successful! You can now login with your new password.');
-            forgotFormElement.reset();
-            loginToggle.click();
-            // Auto-fill phone in login form
-            document.getElementById('loginPhone').value = phone;
-        } else {
-            alert(`❌ ${resetResult.message}`);
-        }
-    } catch (error) {
-        alert('❌ Password reset failed. Please try again.');
-        console.error('Reset password error:', error);
-    } finally {
-        // Reset button
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
-    }
-});
-
-// ✅ UPDATE USERS COUNT ON PAGE LOAD
-async function updateUsersCount() {
-    try {
-        const result = await callBackend('getUsersCount', {});
-        if (result.success) {
-            const footer = document.querySelector('.footer');
-            
-            // Remove existing count if present
-            const existingCount = document.getElementById('usersCount');
-            if (existingCount) {
-                existingCount.remove();
-            }
-            
-            // Add new count
-            const countElement = document.createElement('p');
-            countElement.id = 'usersCount';
-            countElement.innerHTML = `<i class="fas fa-users"></i> ${result.count} Students Registered`;
-            footer.insertBefore(countElement, document.querySelector('.copyright'));
-        }
-    } catch (error) {
-        console.log('Could not load users count');
-    }
+    return {
+      success: false,
+      message: "🌐 Network error. Please check your connection."
+    };
+  }
 }
 
-// ✅ TEST BACKEND CONNECTION ON LOAD
-async function testBackendConnection() {
-    try {
-        const response = await fetch(BACKEND_URL);
-        const data = await response.json();
-        console.log('Backend connection test:', data);
-        return data.status === 'active';
-    } catch (error) {
-        console.warn('Backend connection test failed:', error);
-        return false;
-    }
+// ============================================
+// UI FUNCTIONS
+// ============================================
+
+function showLoader(text = "Processing...") {
+  const loader = document.getElementById('loader') || createLoader();
+  loader.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${text}`;
+  loader.style.display = 'block';
 }
 
-// ✅ INITIALIZE ON PAGE LOAD
-document.addEventListener('DOMContentLoaded', async () => {
-    console.log('Student Community loaded');
+function hideLoader() {
+  const loader = document.getElementById('loader');
+  if (loader) loader.style.display = 'none';
+}
+
+function createLoader() {
+  const loader = document.createElement('div');
+  loader.id = 'loader';
+  loader.className = 'loader';
+  loader.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #3b82f6;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    z-index: 1000;
+    display: none;
+  `;
+  document.body.appendChild(loader);
+  return loader;
+}
+
+function showMessage(message, type = 'success') {
+  const messageEl = document.getElementById('message') || createMessageBox();
+  messageEl.innerHTML = `
+    <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+    ${message}
+  `;
+  messageEl.className = `message ${type}`;
+  messageEl.style.display = 'block';
+  
+  setTimeout(() => {
+    messageEl.style.display = 'none';
+  }, 3000);
+}
+
+function createMessageBox() {
+  const box = document.createElement('div');
+  box.id = 'message';
+  box.style.cssText = `
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 12px 24px;
+    border-radius: 8px;
+    color: white;
+    font-weight: 500;
+    z-index: 1000;
+    display: none;
+    min-width: 300px;
+    text-align: center;
+  `;
+  document.body.appendChild(box);
+  return box;
+}
+
+// ============================================
+// FORM HANDLERS
+// ============================================
+
+// Toggle between forms
+loginToggle.addEventListener('click', () => toggleForm('login'));
+registerToggle.addEventListener('click', () => toggleForm('register'));
+switchToRegister.addEventListener('click', (e) => { e.preventDefault(); toggleForm('register'); });
+switchToLogin.addEventListener('click', (e) => { e.preventDefault(); toggleForm('login'); });
+
+function toggleForm(form) {
+  // Reset all
+  loginToggle.classList.remove('active');
+  registerToggle.classList.remove('active');
+  loginForm.classList.remove('active');
+  registerForm.classList.remove('active');
+  forgotForm.classList.remove('active');
+  
+  // Activate selected
+  if (form === 'login') {
+    loginToggle.classList.add('active');
+    loginForm.classList.add('active');
+  } else if (form === 'register') {
+    registerToggle.classList.add('active');
+    registerForm.classList.add('active');
+  } else if (form === 'forgot') {
+    forgotForm.classList.add('active');
+  }
+}
+
+// Forgot password
+forgotPasswordLink.addEventListener('click', (e) => {
+  e.preventDefault();
+  toggleForm('forgot');
+});
+
+cancelForgot.addEventListener('click', () => {
+  toggleForm('login');
+});
+
+// Password visibility toggle
+document.querySelectorAll('.toggle-password').forEach(button => {
+  button.addEventListener('click', function() {
+    const input = this.previousElementSibling;
+    const icon = this.querySelector('i');
     
-    // Test backend connection
-    const isConnected = await testBackendConnection();
-    if (isConnected) {
-        console.log('✅ Backend connected successfully');
+    if (input.type === 'password') {
+      input.type = 'text';
+      icon.classList.remove('fa-eye');
+      icon.classList.add('fa-eye-slash');
     } else {
-        console.warn('⚠️ Backend connection issue - using offline mode');
+      input.type = 'password';
+      icon.classList.remove('fa-eye-slash');
+      icon.classList.add('fa-eye');
+    }
+  });
+});
+
+// Phone number formatting
+document.querySelectorAll('input[type="tel"]').forEach(input => {
+  input.addEventListener('input', function(e) {
+    let value = this.value.replace(/\D/g, '');
+    
+    if (value.length > 0) {
+      if (value.length <= 4) {
+        value = value;
+      } else if (value.length <= 11) {
+        value = value.substring(0, 4) + '-' + value.substring(4);
+      } else {
+        value = value.substring(0, 11);
+      }
     }
     
-    // Update users count
-    updateUsersCount();
-    
-    // Check if there are existing users in localStorage for counter
-    const existingUsers = JSON.parse(localStorage.getItem('students')) || [];
-    userCounter = existingUsers.length + 1;
+    this.value = value;
+  });
 });
+
+// Password strength indicator
+passwordInput.addEventListener('input', function() {
+  const password = this.value;
+  let score = 0;
+  
+  if (password.length >= 8) score += 20;
+  if (password.length >= 12) score += 20;
+  if (/[A-Z]/.test(password)) score += 20;
+  if (/[0-9]/.test(password)) score += 20;
+  if (/[^A-Za-z0-9]/.test(password)) score += 20;
+  
+  strengthBar.style.width = score + '%';
+  
+  if (score <= 40) {
+    strengthBar.style.backgroundColor = '#ef4444';
+    strengthText.textContent = 'Weak';
+  } else if (score <= 80) {
+    strengthBar.style.backgroundColor = '#f59e0b';
+    strengthText.textContent = 'Medium';
+  } else {
+    strengthBar.style.backgroundColor = '#10b981';
+    strengthText.textContent = 'Strong';
+  }
+});
+
+// Image upload
+uploadArea.addEventListener('click', () => profilePicInput.click());
+
+profilePicInput.addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  
+  // Validation
+  if (file.size > 2 * 1024 * 1024) {
+    showMessage('❌ Image must be less than 2MB', 'error');
+    this.value = '';
+    return;
+  }
+  
+  if (!file.type.match('image/jpeg') && !file.type.match('image/png')) {
+    showMessage('❌ Only JPG/PNG images allowed', 'error');
+    this.value = '';
+    return;
+  }
+  
+  // Preview
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    previewContainer.innerHTML = `
+      <img src="${e.target.result}" alt="Preview">
+      <button type="button" class="remove-image">
+        <i class="fas fa-trash"></i> Remove
+      </button>
+    `;
+    previewContainer.style.display = 'block';
+    
+    previewContainer.querySelector('.remove-image').addEventListener('click', () => {
+      profilePicInput.value = '';
+      previewContainer.style.display = 'none';
+    });
+  };
+  reader.readAsDataURL(file);
+});
+
+// ============================================
+// FORM SUBMISSIONS
+// ============================================
+
+// 1. REGISTRATION
+registerFormElement.addEventListener('submit', async function(e) {
+  e.preventDefault();
+  
+  // Get form data
+  const formData = {
+    firstName: document.getElementById('firstName').value.trim(),
+    lastName: document.getElementById('lastName').value.trim(),
+    education: document.getElementById('education').value,
+    skills: document.getElementById('skills').value.trim(),
+    phone: document.getElementById('registerPhone').value,
+    password: document.getElementById('registerPassword').value
+  };
+  
+  // Validation
+  if (!/^[A-Za-z ]{2,20}$/.test(formData.firstName)) {
+    showMessage('❌ First name: 2-20 letters only', 'error');
+    return;
+  }
+  
+  if (!/^[A-Za-z ]{2,20}$/.test(formData.lastName)) {
+    showMessage('❌ Last name: 2-20 letters only', 'error');
+    return;
+  }
+  
+  if (!formData.education) {
+    showMessage('❌ Please select education level', 'error');
+    return;
+  }
+  
+  if (!/^03\d{2}-\d{7}$/.test(formData.phone)) {
+    showMessage('❌ Phone format: 03XX-XXXXXXX', 'error');
+    return;
+  }
+  
+  if (formData.password.length < 6) {
+    showMessage('❌ Password must be at least 6 characters', 'error');
+    return;
+  }
+  
+  if (formData.password !== document.getElementById('confirmPassword').value) {
+    showMessage('❌ Passwords do not match', 'error');
+    return;
+  }
+  
+  if (!document.getElementById('terms').checked) {
+    showMessage('❌ Please accept terms & conditions', 'error');
+    return;
+  }
+  
+  // Handle profile picture
+  if (profilePicInput.files[0]) {
+    const reader = new FileReader();
+    formData.profilePic = await new Promise((resolve) => {
+      reader.onload = (e) => resolve(e.target.result);
+      reader.readAsDataURL(profilePicInput.files[0]);
+    });
+  }
+  
+  // Call backend
+  const result = await callBackend('register', { userData: formData });
+  
+  if (result.success) {
+    showMessage(`✅ ${result.message} Username: ${result.username}`, 'success');
+    
+    // Reset form
+    registerFormElement.reset();
+    previewContainer.style.display = 'none';
+    strengthBar.style.width = '0%';
+    strengthText.textContent = 'Password strength';
+    
+    // Switch to login and auto-fill
+    setTimeout(() => {
+      toggleForm('login');
+      document.getElementById('loginPhone').value = formData.phone;
+    }, 1500);
+    
+  } else {
+    showMessage(`❌ ${result.message}`, 'error');
+  }
+});
+
+// 2. LOGIN
+loginFormElement.addEventListener('submit', async function(e) {
+  e.preventDefault();
+  
+  const phone = document.getElementById('loginPhone').value;
+  const password = document.getElementById('loginPassword').value;
+  
+  // Validation
+  if (!/^03\d{2}-\d{7}$/.test(phone)) {
+    showMessage('❌ Invalid phone format', 'error');
+    return;
+  }
+  
+  if (password.length < 6) {
+    showMessage('❌ Password too short', 'error');
+    return;
+  }
+  
+  // Remember me
+  if (document.getElementById('rememberMe').checked) {
+    localStorage.setItem('rememberedPhone', phone);
+  }
+  
+  // Call backend
+  const result = await callBackend('login', { phone, password });
+  
+  if (result.success) {
+    showMessage(`✅ Welcome back, ${result.userData.firstName}!`, 'success');
+    
+    // Save user data
+    localStorage.setItem('currentUser', JSON.stringify(result.userData));
+    localStorage.setItem('userToken', 'logged_in_' + Date.now());
+    
+    // Redirect to dashboard
+    setTimeout(() => {
+      window.location.href = 'dashboard.html';
+    }, 1000);
+    
+  } else {
+    showMessage(`❌ ${result.message}`, 'error');
+  }
+});
+
+// 3. FORGOT PASSWORD
+forgotFormElement.addEventListener('submit', async function(e) {
+  e.preventDefault();
+  
+  const phone = document.getElementById('forgotPhone').value;
+  const newPassword = document.getElementById('newPassword').value;
+  const confirmPassword = document.getElementById('confirmNewPassword').value;
+  
+  // Validation
+  if (!/^03\d{2}-\d{7}$/.test(phone)) {
+    showMessage('❌ Invalid phone format', 'error');
+    return;
+  }
+  
+  if (newPassword.length < 6) {
+    showMessage('❌ Password must be at least 6 characters', 'error');
+    return;
+  }
+  
+  if (newPassword !== confirmPassword) {
+    showMessage('❌ Passwords do not match', 'error');
+    return;
+  }
+  
+  // Check phone exists
+  const checkResult = await callBackend('checkPhone', { phone });
+  
+  if (!checkResult.exists) {
+    showMessage('❌ Phone number not found', 'error');
+    return;
+  }
+  
+  // Reset password
+  const resetResult = await callBackend('resetPassword', { 
+    phone, 
+    newPassword 
+  });
+  
+  if (resetResult.success) {
+    showMessage('✅ Password reset successful!', 'success');
+    
+    // Reset form and switch to login
+    forgotFormElement.reset();
+    toggleForm('login');
+    document.getElementById('loginPhone').value = phone;
+    
+  } else {
+    showMessage(`❌ ${resetResult.message}`, 'error');
+  }
+});
+
+// ============================================
+// INITIALIZATION
+// ============================================
+
+async function initApp() {
+  console.log(`${CONFIG.APP_NAME} v${CONFIG.VERSION} initializing...`);
+  
+  // Create UI elements
+  createLoader();
+  createMessageBox();
+  
+  // Load remembered phone
+  const rememberedPhone = localStorage.getItem('rememberedPhone');
+  if (rememberedPhone) {
+    document.getElementById('loginPhone').value = rememberedPhone;
+    document.getElementById('rememberMe').checked = true;
+  }
+  
+  // Update users count
+  updateUsersCount();
+  
+  // Test backend connection
+  const connected = await testConnection();
+  
+  if (connected) {
+    console.log('✅ Backend connected successfully');
+  } else {
+    console.warn('⚠️ Backend connection issue');
+    showMessage('⚠️ Running in offline mode', 'warning');
+  }
+}
+
+async function testConnection() {
+  try {
+    const response = await fetch(CONFIG.BACKEND_URL);
+    const data = await response.json();
+    return data.success !== false;
+  } catch (error) {
+    return false;
+  }
+}
+
+async function updateUsersCount() {
+  try {
+    const result = await callBackend('getUsersCount');
+    if (result.success) {
+      const footer = document.querySelector('.footer');
+      const existing = document.getElementById('usersCount');
+      
+      if (existing) existing.remove();
+      
+      const countEl = document.createElement('p');
+      countEl.id = 'usersCount';
+      countEl.innerHTML = `<i class="fas fa-users"></i> ${result.count} Students Registered`;
+      footer.insertBefore(countEl, document.querySelector('.copyright'));
+    }
+  } catch (error) {
+    // Silent fail
+  }
+}
+
+// Start the app
+document.addEventListener('DOMContentLoaded', initApp);
